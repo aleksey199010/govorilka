@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Говорилка — запуск речи</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FF6B6B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Говорилка">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&display=swap');
+:root {
+  --bg:#FFF9F0;--primary:#FF6B6B;--secondary:#4ECDC4;--accent:#FFE66D;
+  --purple:#A78BFA;--green:#6EE7B7;--blue:#60A5FA;--orange:#FB923C;
+  --text:#2D2D2D;--soft:#F3E8D8;--card-shadow:0 8px 32px rgba(0,0,0,0.10);--radius:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito','Rounded Mplus 1c','Comic Sans MS',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:max(80px,calc(80px + env(safe-area-inset-bottom)))}
+header{background:linear-gradient(135deg,#FF6B6B,#FF8E53);padding:18px 20px 14px;text-align:center}
+header h1{font-size:24px;font-weight:900;color:#fff}
+header p{color:rgba(255,255,255,.85);font-size:13px;margin-top:3px}
+.age-badge{display:inline-block;background:var(--accent);color:#333;font-weight:700;font-size:11px;padding:3px 12px;border-radius:20px;margin-top:7px}
+.tabs{display:flex;overflow-x:auto;gap:0;background:#fff;border-bottom:2px solid var(--soft);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:12px 14px;border:none;background:transparent;font-family:'Nunito',system-ui,sans-serif;font-size:13px;font-weight:700;color:#999;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.section{display:none;padding:16px 14px 20px}
+.section.active{display:block}
+.section-title{font-size:17px;font-weight:900;margin-bottom:5px}
+.section-desc{font-size:12px;color:#777;margin-bottom:16px;line-height:1.5}
+/* CARDS */
+.cat-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.cat-btn{padding:7px 13px;border:2px solid var(--soft);border-radius:50px;background:#fff;font-family:'Nunito',system-ui,sans-serif;font-size:12px;font-weight:700;color:#999;cursor:pointer;transition:all .2s}
+.cat-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.cards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.card{background:#fff;border-radius:var(--radius);padding:18px 12px;text-align:center;cursor:pointer;box-shadow:var(--card-shadow);transition:transform .15s;border:3px solid transparent;user-select:none;-webkit-tap-highlight-color:transparent;position:relative}
+.card:active{transform:scale(.94)}
+.card.tapped{border-color:var(--secondary);background:#F0FFFE}
+.card .em{font-size:52px;display:block;margin-bottom:8px}
+.card .wd{font-size:17px;font-weight:900}
+.card .sd{font-size:12px;color:var(--primary);font-weight:700;margin-top:4px;background:#FFF0F0;padding:2px 9px;border-radius:20px;display:inline-block}
+.card .ph{position:absolute;top:7px;right:7px;font-size:16px;opacity:0;transition:opacity .3s}
+.card.tapped .ph{opacity:1}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:32px;padding:36px 28px;text-align:center;width:90%;max-width:360px;position:relative;animation:popIn .25s ease}
+@keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-close{position:absolute;top:14px;right:14px;background:var(--soft);border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal-em{font-size:110px;line-height:1;margin-bottom:16px;animation:float 2s ease-in-out infinite}
+.modal-word{font-size:36px;font-weight:900;margin-bottom:10px}
+.modal-sound{font-size:28px;font-weight:900;color:var(--primary);background:#FFF0F0;border-radius:16px;padding:10px 24px;display:inline-block;margin-bottom:16px;letter-spacing:3px}
+.modal-tip{font-size:13px;color:#777;line-height:1.6;background:var(--soft);border-radius:14px;padding:10px 14px}
+.modal-nav{display:flex;gap:10px;margin-top:18px}
+.modal-nav button{flex:1;padding:12px;border:none;border-radius:14px;font-family:'Nunito',system-ui,sans-serif;font-size:15px;font-weight:800;cursor:pointer}
+.modal-prev{background:var(--soft);color:var(--text)}
+.modal-next{background:linear-gradient(135deg,var(--primary),#FF8E53);color:#fff}
+/* EXERCISE CARD */
+.ex-card{background:#fff;border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--card-shadow)}
+.ex-head{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.ex-ico{font-size:28px;width:50px;height:50px;background:var(--soft);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-title{font-size:15px;font-weight:900}
+.ex-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;display:inline-block;margin-top:3px}
+.tag-s{background:#FFE4E4;color:var(--primary)}
+.tag-f{background:#E4F9F7;color:#0D9488}
+.tag-i{background:#EDE9FE;color:#7C3AED}
+.tag-c{background:#FEF9C3;color:#92400E}
+.tag-m{background:#FCE7F3;color:#BE185D}
+.tag-p{background:#DBEAFE;color:#1D4ED8}
+.ex-steps{list-style:none;counter-reset:step}
+.ex-steps li{counter-increment:step;display:flex;gap:9px;align-items:flex-start;margin-bottom:7px;font-size:13px;line-height:1.5}
+.ex-steps li::before{content:counter(step);background:var(--accent);color:#333;font-weight:900;font-size:11px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.do-btn{width:100%;padding:11px;margin-top:12px;background:linear-gradient(135deg,var(--secondary),#38B2AC);color:#fff;border:none;border-radius:13px;font-family:'Nunito',system-ui,sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:transform .15s}
+.do-btn:active{transform:scale(.97)}
+.do-btn.done{background:linear-gradient(135deg,var(--green),#059669)}
+/* SOUNDS */
+.sound-game{background:#fff;border-radius:var(--radius);padding:22px 18px;text-align:center;box-shadow:var(--card-shadow);margin-bottom:14px}
+.sound-em{font-size:68px;margin:14px 0;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.sound-text{font-size:30px;font-weight:900;color:var(--primary);letter-spacing:4px;margin-bottom:6px}
+.sound-help{font-size:12px;color:#999;margin-bottom:18px}
+.sbtn{background:linear-gradient(135deg,var(--primary),#FF8E53);color:#fff;border:none;border-radius:50px;padding:12px 26px;font-family:'Nunito',system-ui,sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin:0 5px;transition:transform .15s}
+.sbtn:active{transform:scale(.95)}
+.sbtn.sec{background:var(--soft);color:var(--text)}
+.pdots{display:flex;gap:5px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.pdot{width:9px;height:9px;border-radius:50%;background:var(--soft);transition:background .3s}
+.pdot.done{background:var(--primary)}
+/* FINGER GAMES */
+.fg-card{background:#fff;border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--card-shadow)}
+.fg-title{font-size:15px;font-weight:900;margin-bottom:4px}
+.fg-age{font-size:11px;color:#999;margin-bottom:10px}
+.fg-text{font-size:14px;line-height:2;color:#444;background:var(--soft);border-radius:12px;padding:12px 14px;white-space:pre-line}
+.fg-action{font-size:12px;color:var(--purple);font-weight:700;margin-top:8px}
+/* PECS */
+.pecs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.pecs-card{background:#fff;border-radius:16px;padding:14px 8px;text-align:center;box-shadow:var(--card-shadow);cursor:pointer;transition:transform .15s;border:2px solid transparent}
+.pecs-card:active{transform:scale(.93)}
+.pecs-card.selected{border-color:var(--primary);background:#FFF0F0}
+.pecs-em{font-size:40px;display:block;margin-bottom:5px}
+.pecs-word{font-size:12px;font-weight:700}
+.pecs-output{background:#fff;border-radius:16px;padding:14px;box-shadow:var(--card-shadow);margin-bottom:14px;min-height:60px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pecs-chip{background:var(--soft);border-radius:50px;padding:6px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px}
+.pecs-chip button{background:none;border:none;cursor:pointer;color:#999;font-size:14px;line-height:1}
+/* PROVOCATIONS */
+.prov-card{background:#fff;border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--card-shadow);border-left:4px solid var(--orange)}
+.prov-title{font-size:15px;font-weight:900;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.prov-body{font-size:13px;line-height:1.7;color:#555}
+.prov-body b{color:var(--text)}
+.prov-body .ex{background:var(--soft);border-radius:10px;padding:8px 12px;margin-top:8px;font-style:italic;font-size:12px}
+/* MASSAGE */
+.mas-card{background:#fff;border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--card-shadow)}
+.mas-zone{display:inline-block;background:var(--soft);border-radius:50px;padding:4px 12px;font-size:12px;font-weight:700;color:#666;margin-bottom:10px}
+/* TIPS */
+.tip-card{background:#fff;border-radius:var(--radius);padding:18px;margin-bottom:12px;box-shadow:var(--card-shadow);border-left:4px solid var(--primary)}
+.tip-card.green{border-left-color:var(--secondary)}
+.tip-card.purple{border-left-color:var(--purple)}
+.tip-card.yellow{border-left-color:#F59E0B}
+.tip-card.blue{border-left-color:var(--blue)}
+.tip-title{font-size:14px;font-weight:900;margin-bottom:7px}
+.tip-body{font-size:13px;line-height:1.7;color:#555}
+.tip-body b{color:var(--text)}
+.warn{background:#FFF3CD;border-radius:14px;padding:14px;margin-bottom:14px;font-size:13px;line-height:1.6;border:1px solid #FBBF24}
+.warn strong{color:#92400E}
+/* TRACKER */
+.tracker-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:14px}
+.day-cell{aspect-ratio:1;border-radius:7px;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#aaa;cursor:pointer;transition:all .2s}
+.day-cell.active{background:var(--primary);color:#fff;transform:scale(1.08)}
+.day-cell.today{border:2px solid var(--primary);color:var(--primary)}
+.streak{background:linear-gradient(135deg,var(--accent),#FBBF24);border-radius:18px;padding:12px 18px;text-align:center;margin-bottom:14px}
+.streak .num{font-size:34px;font-weight:900}
+.streak .lbl{font-size:12px;color:#666}
+/* AI CHAT */
+.ai-chat{background:#fff;border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--card-shadow)}
+.ai-messages{min-height:120px;max-height:320px;overflow-y:auto;margin-bottom:12px;display:flex;flex-direction:column;gap:10px}
+.msg{padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.6;max-width:88%}
+.msg.bot{background:var(--soft);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.user{background:var(--primary);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.loading{background:var(--soft);align-self:flex-start}
+.ai-input-row{display:flex;gap:8px}
+.ai-input{flex:1;border:2px solid var(--soft);border-radius:12px;padding:10px 12px;font-family:'Nunito',system-ui,sans-serif;font-size:13px;outline:none;background:#fff}
+.ai-input:focus{border-color:var(--primary)}
+.ai-send{background:var(--primary);color:#fff;border:none;border-radius:12px;padding:10px 16px;font-family:'Nunito',system-ui,sans-serif;font-size:14px;font-weight:800;cursor:pointer}
+.quick-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.qbtn{background:var(--soft);border:none;border-radius:50px;padding:7px 13px;font-family:'Nunito',system-ui,sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:#555;transition:all .2s}
+.qbtn:active{background:var(--secondary);color:#fff}
+/* SCHEDULE */
+.sched-item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--soft)}
+.sched-time{font-size:12px;font-weight:700;color:#999;min-width:55px;flex-shrink:0;margin-top:2px}
+.sched-content .sched-title{font-size:14px;font-weight:900;margin-bottom:3px}
+.sched-content .sched-desc{font-size:12px;color:#666;line-height:1.5}
+.sched-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:5px}
+/* SUB TABS */
+.sub-tabs{display:flex;gap:8px;margin-bottom:16px}
+.sub-tab{flex:1;padding:10px;border:2px solid var(--soft);border-radius:12px;background:#fff;font-family:'Nunito',system-ui,sans-serif;font-size:13px;font-weight:700;color:#999;cursor:pointer;transition:all .2s}
+.sub-tab.active{background:var(--purple);border-color:var(--purple);color:#fff}
+/* FLOATING */
+.floating-tip{position:fixed;bottom:14px;left:14px;right:14px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:18px;padding:11px 15px;font-size:13px;font-weight:600;text-align:center;display:none;z-index:100;animation:slideUp .3s ease;pointer-events:none}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🗣️ Говорилка</h1>
+  <p>Полная программа запуска речи</p>
+  <span class="age-badge">👶 2–3 года · Задержка речи</span>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('cards',this)">🃏 Карточки</button>
+  <button class="tab" onclick="showTab('sounds',this)">🎵 Звуки</button>
+  <button class="tab" onclick="showTab('finger',this)">🖐️ Пальчики</button>
+  <button class="tab" onclick="showTab('provoke',this)">🔥 Провокации</button>
+  <button class="tab" onclick="showTab('pecs',this)">🖼️ PECS</button>
+  <button class="tab" onclick="showTab('massage',this)">💆 Массаж</button>
+  <button class="tab" onclick="showTab('exercises',this)">💪 Упражнения</button>
+  <button class="tab" onclick="showTab('schedule',this)">📅 Режим дня</button>
+  <button class="tab" onclick="showTab('tips',this)">📋 Советы</button>
+  <button class="tab" onclick="showTab('ai',this)" style="display:none">🤖 ИИ-помощник</button>
+  <button class="tab" onclick="showTab('tracker',this)">✅ Дневник</button>
+</div>
+
+<!-- КАРТОЧКИ -->
+<div id="tab-cards" class="section active">
+  <div class="section-title">Покажи пальчиком! 👆</div>
+  <div class="section-desc">Нажми на карточку — назови слово чётко и весело. Возьми ручку ребёнка и вместе покажите пальчиком. Жди реакцию!</div>
+  <div class="cat-btns" id="cat-btns">
+    <button class="cat-btn active" onclick="loadCat('animals',this)">🐾 Животные</button>
+    <button class="cat-btn" onclick="loadCat('food',this)">🍎 Еда</button>
+    <button class="cat-btn" onclick="loadCat('body',this)">👋 Тело</button>
+    <button class="cat-btn" onclick="loadCat('actions',this)">🏃 Действия</button>
+    <button class="cat-btn" onclick="loadCat('transport',this)">🚗 Транспорт</button>
+    <button class="cat-btn" onclick="loadCat('home',this)">🏠 Дом</button>
+    <button class="cat-btn" onclick="loadCat('nature',this)">🌳 Природа</button>
+    <button class="cat-btn" onclick="loadCat('feelings',this)">😊 Эмоции</button>
+  </div>
+  <div class="cards-grid" id="cards-grid"></div>
+</div>
+
+<!-- ЗВУКИ -->
+<div id="tab-sounds" class="section">
+  <div class="section-title">Повторяй за мной! 🎵</div>
+  <div class="section-desc">Произнесите звук чётко, выразительно. Ждите 10 секунд. Любое мычание или попытка — уже победа! Хвалите бурно!</div>
+  <div class="sound-game">
+    <div style="font-size:12px;color:#999">Звук животного / предмета</div>
+    <div class="sound-em" id="snd-em">🐄</div>
+    <div class="sound-text" id="snd-txt">МУ-У-У</div>
+    <div class="sound-help" id="snd-hlp">Тяните долго, кивайте головой как корова</div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:10px">
+      <button class="sbtn sec" onclick="prevSnd()">← Назад</button>
+      <button class="sbtn" onclick="nextSnd()">Вперёд →</button>
+    </div>
+    <div class="pdots" id="pdots"></div>
+  </div>
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">🎭</div><div><div class="ex-title">Игра «Эхо»</div><span class="ex-tag tag-i">Имитация</span></div></div>
+    <ul class="ex-steps">
+      <li>Сядьте напротив, смотрите друг другу в глаза</li>
+      <li>Скажите звук с выражением: «А-А-А!» или «БУМ!»</li>
+      <li>Подождите 10 секунд молча — не торопите</li>
+      <li>Если повторил — обнимите и скажите «Ура! Молодец!»</li>
+      <li>Если нет — снова с улыбкой, без давления, 5–7 раз в день</li>
+    </ul>
+  </div>
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">🎶</div><div><div class="ex-title">Пение слогов</div><span class="ex-tag tag-s">Речь</span></div></div>
+    <ul class="ex-steps">
+      <li>Пойте слоги нараспев: «Ма-ма-ма», «Па-па-па», «Ба-ба-ба»</li>
+      <li>Меняйте высоту голоса — то высоко, то низко</li>
+      <li>Хлопайте в ладоши в такт: МА-МА-МА (3 хлопка)</li>
+      <li>Потом «Да-да-да», «На-на-на», «Ля-ля-ля»</li>
+      <li>Делайте паузу на последнем слоге — пусть договорит</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ПАЛЬЧИКОВЫЕ -->
+<div id="tab-finger" class="section">
+  <div class="section-title">Пальчиковые игры 🖐️</div>
+  <div class="section-desc">Мелкая моторика — прямой путь к речи. Зоны мозга рядом! По 2–3 игры в день, 3–5 минут. Делайте вместе, рука в руке.</div>
+
+  <div class="fg-card">
+    <div class="fg-title">🐦 Сорока-ворона</div>
+    <div class="fg-age">⭐ Классика · с 12 месяцев</div>
+    <div class="fg-text">Сорока-ворона кашу варила,
+Деток кормила.
+Этому дала, этому дала,
+Этому дала, этому дала,
+А этому — не дала!</div>
+    <div class="fg-action">👆 Водите пальцем по ладошке малыша кругами. Потом загибайте каждый пальчик — от мизинца к большому. Большой — не дала! (пощекочите)</div>
+  </div>
+
+  <div class="fg-card">
+    <div class="fg-title">👏 Ладушки</div>
+    <div class="fg-age">⭐ Классика · с 8 месяцев</div>
+    <div class="fg-text">Ладушки, ладушки!
+Где были? У бабушки.
+Что ели? Кашку.
+Что пили? Бражку.
+Кашка масленька,
+Бражка сладенька,
+Бабушка добренька.
+Попили, поели — домой полетели!</div>
+    <div class="fg-action">👐 Хлопайте в ладоши вместе. На «домой полетели» — машите руками как крыльями</div>
+  </div>
+
+  <div class="fg-card">
+    <div class="fg-title">🐛 Семья</div>
+    <div class="fg-age">⭐⭐ · с 18 месяцев</div>
+    <div class="fg-text">Этот пальчик — дедушка,
+Этот пальчик — бабушка,
+Этот пальчик — папочка,
+Этот пальчик — мамочка,
+Этот пальчик — я!</div>
+    <div class="fg-action">🖐️ Загибайте каждый пальчик начиная с большого. На «Я!» — сожмите кулачок и поднимите</div>
+  </div>
+
+  <div class="fg-card">
+    <div class="fg-title">🕷️ Паучок</div>
+    <div class="fg-age">⭐⭐ · с 18 месяцев</div>
+    <div class="fg-text">Паучок, паучок,
+Тоненькие ножки,
+Красные сапожки.
+Мы тебя не боимся,
+Вот так!</div>
+    <div class="fg-action">🤙 «Ползите» пальцами по руке ребёнка снизу вверх как паучок. На «Вот так!» — щекочите!</div>
+  </div>
+
+  <div class="fg-card">
+    <div class="fg-title">🐟 Рыбка</div>
+    <div class="fg-age">⭐⭐ · с 18 месяцев</div>
+    <div class="fg-text">Рыбка плавает в водице,
+Рыбке весело играть.
+Рыбка, рыбка, озорница,
+Мы хотим тебя поймать!</div>
+    <div class="fg-action">🤚 Соедините ладони и «плывите» — волновое движение руками. На «поймать» — хватайте руку малыша!</div>
+  </div>
+
+  <div class="fg-card">
+    <div class="fg-title">☀️ Солнышко</div>
+    <div class="fg-age">⭐⭐ · с 18 месяцев</div>
+    <div class="fg-text">Солнышко, солнышко,
+Выгляни в окошко!
+Твои детки плачут,
+По камушкам скачут.</div>
+    <div class="fg-action">🌟 Раскройте ладони и растопырьте пальцы — «лучики». Покрутите руками. На «плачут» — изобразите слёзы пальцами вниз</div>
+  </div>
+
+  <div class="fg-card">
+    <div class="fg-title">🏠 Домик</div>
+    <div class="fg-age">⭐⭐⭐ · с 2 лет</div>
+    <div class="fg-text">Я хочу построить дом,
+Чтоб окошко было в нём,
+Чтоб у дома дверь была,
+Рядом ёлочка росла.
+Чтоб вокруг забор стоял,
+Пёс ворота охранял.
+Солнце было, дождик шёл,
+И тюльпан в саду расцвёл!</div>
+    <div class="fg-action">🏗️ Каждая строчка — новый жест: домик (ладони домиком), окошко (пальцы рамочкой), дверь (ладони вертикально), ёлка (пальцы вверх), пёс (кулак)</div>
+  </div>
+
+  <div class="fg-card">
+    <div class="fg-title">🎵 Мишка косолапый</div>
+    <div class="fg-age">⭐ Классика · с 12 месяцев</div>
+    <div class="fg-text">Мишка косолапый
+По лесу идёт,
+Шишки собирает,
+Песенку поёт.
+Шишка отлетела —
+Прямо мишке в лоб.
+Мишка рассердился
+И ногою — топ!</div>
+    <div class="fg-action">🐻 Топайте вместе с ребёнком. На «в лоб» — лёгкий тычок пальцем в лобик. На «топ» — громко топнуть ногой!</div>
+  </div>
+</div>
+
+<!-- ПРОВОКАЦИИ -->
+<div id="tab-provoke" class="section">
+  <div class="section-title">Провокации речи 🔥</div>
+  <div class="section-desc">Специальные ситуации, которые создают у ребёнка ПОТРЕБНОСТЬ общаться. Это главное, что делают дефектологи для запуска первых слов.</div>
+
+  <div class="prov-card">
+    <div class="prov-title">🎯 Незаконченное действие</div>
+    <div class="prov-body">
+      Начните любимое занятие и остановитесь на полуслове, смотрите на ребёнка с ожиданием.
+      <div class="ex">Начните петь «Ладушки-ладушки...» и замолчите, хлопая руками. Ждите 10 секунд. Вдруг подхватит!</div>
+      <b>Или:</b> наливаете компот, наливаете... и останавливаетесь. Смотрите на ребёнка. Ждёте реакции — протянет руку, потянется, издаст звук — сразу дайте!
+    </div>
+  </div>
+
+  <div class="prov-card">
+    <div class="prov-title">🙈 Притворитесь глупым</div>
+    <div class="prov-body">
+      Специально делайте «неправильно» — ребёнок захочет поправить вас!
+      <div class="ex">Наденьте ему шапку на ногу. Посмотрите невинно: «Готово!». Ждите реакции — он засмеётся, потянется снять, скажет «нет!» или «нога!»</div>
+      <div class="ex">Дайте ложку собаке, а косточку — ему. «На, кушай!» Ждите протеста!</div>
+      <b>Любая реакция</b> — жест, смех, звук — это уже коммуникация. Хвалите и исправляйте.
+    </div>
+  </div>
+
+  <div class="prov-card">
+    <div class="prov-title">📦 Прозрачный контейнер</div>
+    <div class="prov-body">
+      Положите любимую игрушку или сладкое в прозрачную банку с крышкой. Поставьте перед ребёнком. Ребёнок ВИДИТ, но не может взять. Ждите — он должен попросить!
+      <div class="ex">Ждите любого сигнала: тянет руки, смотрит на вас, издаёт звук. Сразу откройте с возгласом: «Дать? Дай! Вот, на!»</div>
+      Повторяйте несколько раз. Постепенно ждите более чёткого сигнала.
+    </div>
+  </div>
+
+  <div class="prov-card">
+    <div class="prov-title">🫧 Мыльные пузыри — пауза</div>
+    <div class="prov-body">
+      Пускайте пузыри — ребёнок в восторге. Потом закройте крышку и ждите. Смотрите с улыбкой.
+      <div class="ex">Когда ребёнок потянется за пузырями — скажите «Ещё?» и ждите любой реакции. Любой звук или жест = сразу пускаете снова!</div>
+      Постепенно ждите более чёткого «Ещё!» или «Да!»
+    </div>
+  </div>
+
+  <div class="prov-card">
+    <div class="prov-title">🔑 Саботаж</div>
+    <div class="prov-body">
+      Дайте ребёнку то, чем нельзя воспользоваться без помощи:
+      <div class="ex">Закрытая упаковка с любимым снеком. Закрытая дверь в комнату с игрушками. Завёрнутый подарок. Пустая тарелка когда голоден.</div>
+      Ждите — ребёнок <b>вынужден</b> обратиться к вам. Любое обращение (взгляд, жест, звук) — немедленно помогите с радостью!
+    </div>
+  </div>
+
+  <div class="prov-card">
+    <div class="prov-title">🎢 Качели-остановка</div>
+    <div class="prov-body">
+      Качаете ребёнка, он доволен. Резко останавливаетесь и ждёте с улыбкой.
+      <div class="ex">«Ещё качать? Скажи «ещё»!» — и ждёте 10 секунд. Любой звук = сразу качаете снова с возгласом «Ещё! Да! Поехали!»</div>
+      Работает с любым любимым действием: щекотка, подбрасывание, карусель, мультик.
+    </div>
+  </div>
+
+  <div class="prov-card">
+    <div class="prov-title">👫 Подражание ребёнку</div>
+    <div class="prov-body">
+      Делайте ВСЁ что делает ребёнок. Стучит — стучите. Мычит — мычите. Прыгает — прыгайте.
+      <div class="ex">Скоро он заметит и начнёт делать что-то специально, проверяя — повторите вы? Это уже диалог! Потом добавляйте к его действию звук или слово.</div>
+      <b>Это упражнение</b> учит ребёнка понимать: я влияю на другого человека. Это фундамент речи.
+    </div>
+  </div>
+
+  <div class="prov-card">
+    <div class="prov-title">🍽️ Маленькие порции</div>
+    <div class="prov-body">
+      Давайте еду/сок/игрушки маленькими порциями — по одному кусочку, по одной детали пазла.
+      <div class="ex">Дали один виноград. Ребёнок съел. Смотрит на вас. Ждёте... «Ещё? На!» — даёте ещё один. Повторяете много раз.</div>
+      Каждый раз создаётся ситуация просьбы. Постепенно ждите звука или слова перед тем как дать.
+    </div>
+  </div>
+</div>
+
+<!-- PECS -->
+<div id="tab-pecs" class="section">
+  <div class="section-title">Картинки-просьбы (PECS) 🖼️</div>
+  <div class="section-desc">PECS — система общения картинками. Ребёнок выбирает картинку и «говорит» ею что хочет. Это мост к настоящей речи. Называйте ВСЛУХ каждую картинку!</div>
+
+  <div class="ex-card" style="margin-bottom:14px">
+    <div style="font-size:13px;line-height:1.7;color:#555">
+      <b>Как использовать:</b> нажмите на картинки что хочет ребёнок. Они появятся внизу в «предложении». Прочитайте вслух: «Я хочу банан!» — и дайте это. Каждый раз называйте слово чётко.
+    </div>
+  </div>
+
+  <div style="font-size:13px;font-weight:700;color:#777;margin-bottom:8px">Нажми что хочет ребёнок:</div>
+  <div class="pecs-grid" id="pecs-grid"></div>
+
+  <div style="font-size:13px;font-weight:700;color:#777;margin-bottom:8px">Ребёнок говорит:</div>
+  <div class="pecs-output" id="pecs-out">
+    <span style="color:#bbb;font-size:13px">Нажмите картинки выше...</span>
+  </div>
+  <button class="do-btn" onclick="clearPecs()" style="background:linear-gradient(135deg,#FF6B6B,#FF8E53)">🗑️ Очистить</button>
+
+  <div class="ex-card" style="margin-top:14px">
+    <div class="ex-head"><div class="ex-ico">📖</div><div><div class="ex-title">Этапы PECS</div><span class="ex-tag tag-p">Метод</span></div></div>
+    <ul class="ex-steps">
+      <li><b>Этап 1:</b> Ребёнок берёт картинку и кладёт в руку взрослого — получает предмет</li>
+      <li><b>Этап 2:</b> Несёт картинку взрослому через расстояние</li>
+      <li><b>Этап 3:</b> Выбирает нужную из 2–3 картинок</li>
+      <li><b>Этап 4:</b> Составляет фразу «Я хочу ___»</li>
+      <li><b>Этап 5:</b> Отвечает «Что ты хочешь?» — выбирает картинку</li>
+    </ul>
+  </div>
+</div>
+
+<!-- МАССАЖ -->
+<div id="tab-massage" class="section">
+  <div class="section-title">Логопедический массаж 💆</div>
+  <div class="section-desc">Массаж лица и языка расслабляет или тонизирует мышцы речевого аппарата. Делайте 5–7 минут перед занятиями. Руки тёплые, движения нежные.</div>
+
+  <div class="mas-card">
+    <div class="mas-zone">😊 Щёки</div>
+    <div class="ex-head"><div class="ex-ico">✋</div><div><div class="ex-title">Массаж щёк</div><span class="ex-tag tag-m">Массаж</span></div></div>
+    <ul class="ex-steps">
+      <li>Поглаживание от висков к носу — 5–7 раз</li>
+      <li>Лёгкие круговые движения по щёкам — по часовой стрелке</li>
+      <li>Пощипывание по скуловой дуге — нежно, как «лепим пирожки»</li>
+      <li>Вибрационные похлопывания подушечками пальцев</li>
+      <li>Натяжение щёки к уху — 3 секунды, отпустить (3–5 раз)</li>
+    </ul>
+    <div style="font-size:12px;color:#999;margin-top:8px">⏱️ 1–2 минуты · каждый день перед занятием</div>
+  </div>
+
+  <div class="mas-card">
+    <div class="mas-zone">👄 Губы</div>
+    <div class="ex-head"><div class="ex-ico">💋</div><div><div class="ex-title">Массаж губ</div><span class="ex-tag tag-m">Массаж</span></div></div>
+    <ul class="ex-steps">
+      <li>Поглаживание верхней губы от углов к середине</li>
+      <li>То же для нижней губы</li>
+      <li>Лёгкое пощипывание по краю верхней и нижней губы</li>
+      <li>Надавите на середину верхней губы — «точка Купидона» — 5 раз</li>
+      <li>Растяните губы в улыбку пальцами и отпустите — 5 раз</li>
+    </ul>
+    <div style="font-size:12px;color:#999;margin-top:8px">⏱️ 1 минута · особенно если губы вялые/не двигаются активно</div>
+  </div>
+
+  <div class="mas-card">
+    <div class="mas-zone">🦷 Дёсны и нёбо</div>
+    <div class="ex-head"><div class="ex-ico">🫦</div><div><div class="ex-title">Зондозаменяющий массаж</div><span class="ex-tag tag-m">Массаж</span></div></div>
+    <ul class="ex-steps">
+      <li>Намотайте бинт на палец или используйте зубную щётку с мягкой щетиной</li>
+      <li>Массируйте дёсны круговыми движениями снаружи и изнутри</li>
+      <li>Поглаживание нёба от зубов к горлу — 5–7 раз (осторожно!)</li>
+      <li>Точечное надавливание на середину нёба — вызывает движение языка</li>
+      <li>Массаж боковых краёв языка щёткой — активирует мышцы</li>
+    </ul>
+    <div style="font-size:12px;color:#999;margin-top:8px">⚠️ Первый раз делайте очень аккуратно. Если ребёнок сопротивляется — не настаивайте, начните с губ.</div>
+  </div>
+
+  <div class="mas-card">
+    <div class="mas-zone">🖐️ Пальчики и ладони</div>
+    <div class="ex-head"><div class="ex-ico">🤲</div><div><div class="ex-title">Массаж рук</div><span class="ex-tag tag-m">Массаж</span></div></div>
+    <ul class="ex-steps">
+      <li>Разминайте каждый пальчик от кончика к основанию — 3–5 раз</li>
+      <li>Круговые движения большим пальцем по ладони</li>
+      <li>Растягивание пальцев в стороны — нежно, без боли</li>
+      <li>«Грабли» — проведите своими пальцами по ладони ребёнка</li>
+      <li>Катайте карандаш между ладонями ребёнка (с вашей помощью)</li>
+    </ul>
+    <div style="font-size:12px;color:#999;margin-top:8px">⏱️ 2–3 минуты · напрямую активирует речевые зоны мозга</div>
+  </div>
+
+  <div class="mas-card">
+    <div class="mas-zone">🧠 Точечный массаж</div>
+    <div class="ex-head"><div class="ex-ico">☝️</div><div><div class="ex-title">Акупрессурные точки речи</div><span class="ex-tag tag-m">Массаж</span></div></div>
+    <ul class="ex-steps">
+      <li><b>Точка 1:</b> Между носом и верхней губой (ямка) — надавите 7 раз</li>
+      <li><b>Точка 2:</b> Уголки рта — лёгкие круговые движения</li>
+      <li><b>Точка 3:</b> Кончик языка — пусть ребёнок сам нажмёт пальцем</li>
+      <li><b>Точка 4:</b> Центр подбородка — круговые движения</li>
+      <li><b>Точка 5:</b> Внутренняя сторона запястья — 10 секунд давления</li>
+    </ul>
+    <div style="font-size:12px;color:#999;margin-top:8px">По методике Новиковой-Луговской. Делайте ежедневно, 2 минуты.</div>
+  </div>
+</div>
+
+<!-- УПРАЖНЕНИЯ -->
+<div id="tab-exercises" class="section">
+  <div class="section-title">Упражнения 💪</div>
+  <div class="section-desc">5–10 минут в день. Главное — игра и радость. Никогда не заставляйте, только приглашайте!</div>
+
+  <div class="sub-tabs">
+    <button class="sub-tab active" onclick="showSubTab('ex-classic',this)">💪 Дефектолог</button>
+    <button class="sub-tab" onclick="showSubTab('ex-neuro',this)">🧠 Нейроигры</button>
+  </div>
+
+  <div id="ex-classic">
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">👆</div><div><div class="ex-title">Указательный жест</div><span class="ex-tag tag-f">Жест</span></div></div>
+    <ul class="ex-steps">
+      <li>Поставьте любимую игрушку чуть дальше досягаемости</li>
+      <li>Когда тянется — возьмите ручку, сложите пальчик «пистолетиком»</li>
+      <li>Вместе укажите на игрушку и сразу дайте её</li>
+      <li>Повторяйте 5–7 раз в день в игровой форме</li>
+      <li>Постепенно ждите 3–5 секунд — вдруг сам покажет</li>
+    </ul>
+    <button class="do-btn" onclick="markDone(this)">✓ Сделали сегодня!</button>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">💨</div><div><div class="ex-title">Артикуляционная гимнастика</div><span class="ex-tag tag-s">Речь</span></div></div>
+    <ul class="ex-steps">
+      <li>«Заборчик» — широкая улыбка, зубы видны, держать 5 сек</li>
+      <li>«Хоботок» — губы трубочкой вперёд, держать 5 сек</li>
+      <li>«Лопатка» — широкий язык на нижней губе, 5 сек</li>
+      <li>«Иголочка» — узкий язык острым, 5 сек</li>
+      <li>«Часики» — язык вправо-влево, рот открыт</li>
+      <li>«Качели» — язык вверх-вниз (к носу, к подбородку)</li>
+      <li>Перед зеркалом! Показывайте сами, ребёнок копирует</li>
+    </ul>
+    <button class="do-btn" onclick="markDone(this)">✓ Сделали сегодня!</button>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">🫧</div><div><div class="ex-title">Дыхательные игры</div><span class="ex-tag tag-s">Речь</span></div></div>
+    <ul class="ex-steps">
+      <li>Мыльные пузыри — дуйте через трубочку</li>
+      <li>Бумажный кораблик в тазике — дуйте, чтоб плыл</li>
+      <li>Перышко или ватный шарик — сдуйте со стола</li>
+      <li>Трубочка в стакан воды — пускайте пузыри «буль-буль»</li>
+      <li>Задуйте «свечку» (нарисованную) — длинный плавный выдох</li>
+      <li>Надувайте щёки и хлопайте по ним — «пых!»</li>
+    </ul>
+    <button class="do-btn" onclick="markDone(this)">✓ Сделали сегодня!</button>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">🖐️</div><div><div class="ex-title">Мелкая моторика</div><span class="ex-tag tag-f">Моторика</span></div></div>
+    <ul class="ex-steps">
+      <li>Лепка из пластилина: шарики, колбаски, блинчики</li>
+      <li>Перебирайте крупу (гречка/фасоль), ищите спрятанные бусинки</li>
+      <li>Нанизывание крупных бусин на шнурок</li>
+      <li>Застёгивание крупных пуговиц, молний, кнопок</li>
+      <li>Рисование пальчиками в манке или на запотевшем стекле</li>
+      <li>Рвать и мять бумагу, скручивать в шарики</li>
+    </ul>
+    <button class="do-btn" onclick="markDone(this)">✓ Сделали сегодня!</button>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">👁️</div><div><div class="ex-title">Совместное внимание</div><span class="ex-tag tag-c">Общение</span></div></div>
+    <ul class="ex-steps">
+      <li>Сядьте рядом и смотрите на одну игрушку вместе</li>
+      <li>Скажите «Смотри!» и укажите пальцем — ждите, пока посмотрит</li>
+      <li>Комментируйте: «Красная машинка! Едет! Би-би!»</li>
+      <li>Читайте книжку: «Где мишка? Вот! Покажи!»</li>
+      <li>Чередуйте: вы смотрите → ребёнок смотрит → оба смотрите вместе</li>
+    </ul>
+    <button class="do-btn" onclick="markDone(this)">✓ Сделали сегодня!</button>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">📖</div><div><div class="ex-title">Чтение с пальчиком</div><span class="ex-tag tag-c">Общение</span></div></div>
+    <ul class="ex-steps">
+      <li>Крупные яркие картинки — лучше картонные книги</li>
+      <li>Указывайте на картинку своим пальцем: «Вот кошка!»</li>
+      <li>Возьмите ручку — вместе укажите: «Покажи маму!»</li>
+      <li>«Где собачка?» — ждите взгляда или жеста, хвалите</li>
+      <li>Делайте звуки животных сразу: «Вот корова — МУ!»</li>
+    </ul>
+    <button class="do-btn" onclick="markDone(this)">✓ Сделали сегодня!</button>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">🧩</div><div><div class="ex-title">Сенсорные игры</div><span class="ex-tag tag-i">Стимуляция</span></div></div>
+    <ul class="ex-steps">
+      <li>Кинетический песок или обычный — лепите, рисуйте пальцами</li>
+      <li>Играйте с водой: переливайте, брызгайте, топите уточек</li>
+      <li>Ящик с фасолью: закопайте игрушки — ищем!</li>
+      <li>Рисование пальчиковыми красками — называйте цвета</li>
+      <li>Тактильные дощечки: гладкое, шершавое, колючее, мягкое</li>
+      <li>Ходьба босиком по траве, песку, камушкам — называйте ощущения</li>
+    </ul>
+    <button class="do-btn" onclick="markDone(this)">✓ Сделали сегодня!</button>
+  </div>
+  </div><!-- /ex-classic -->
+
+  <div id="ex-neuro" style="display:none">
+  <div class="section-desc" style="margin-top:4px;margin-bottom:16px">Нейроигры развивают межполушарные связи — это напрямую ускоряет запуск речи. 3–5 минут в день достаточно!</div>
+
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">🤜🤛</div><div><div class="ex-title">Кулак — ребро — ладонь</div><span class="ex-tag tag-i">Межполушарная</span></div></div>
+    <ul class="ex-steps">
+      <li>Положите руку на стол. Покажите три позиции: кулак → ребро → ладонь</li>
+      <li>Сначала медленно вместе — правой рукой, потом левой</li>
+      <li>Затем обеими одновременно в одинаковом темпе</li>
+      <li>Называйте вслух: «Кулак! Ребро! Ладонь!» — ритм помогает</li>
+      <li>Ускоряйте постепенно. 5–7 повторений</li>
+    </ul>
+    <div style="font-size:12px;color:#999;margin-top:8px">🧠 Активирует лобные доли — зона планирования и речи</div>
+    <button class="do-btn" onclick="markDone(this)">✓ Сделали сегодня!</button>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">👃👂</div><div><div class="ex-title">Ухо — нос</div><span class="ex-tag tag-i">Межполушарная</span></div></div>
+    <ul class="ex-steps">
+      <li>Левой рукой возьмитесь за кончик носа, правой — за левое ухо</li>
+      <li>Хлопните в ладоши и поменяйте: правая — нос, левая — правое ухо</li>
+      <li>Чередуйте с хлопком, сначала очень медленно</li>
+      <li>Делайте вместе с ребёнком — он смотрит и пробует повторить</li>
+      <li>10 переключений подряд — уже отличный результат</li>
+    </ul>
+    <div style="font-size:12px;color:#999;margin-top:8px">🧠 Тренирует мозолистое тело — мост между полушариями</div>
+    <button class="do-btn" onclick="markDone(this)">✓ Сделали сегодня!</button>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">🥁</div><div><div class="ex-title">Ритмическое эхо</div><span class="ex-tag tag-s">Ритм и речь</span></div></div>
+    <ul class="ex-steps">
+      <li>Отстучите простой ритм по столу: «ТА — та-та» (пауза важна!)</li>
+      <li>Ребёнок повторяет — хвалите любую попытку</li>
+      <li>Усложняйте: «ТА-та — ТА» → «та-ТА-та-та»</li>
+      <li>Добавьте слоги: хлопок = «МА», пауза = тишина</li>
+      <li>Пойте ритм: «ма-МА-ма» с ударением</li>
+    </ul>
+    <div style="font-size:12px;color:#999;margin-top:8px">🧠 Ритм — основа слоговой структуры слова. Дети с ЗРР часто опережают в ритме</div>
+    <button class="do-btn" onclick="markDone(this)">✓ Сделали сегодня!</button>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">🦋</div><div><div class="ex-title">Перекрёстные движения</div><span class="ex-tag tag-i">Межполушарная</span></div></div>
+    <ul class="ex-steps">
+      <li>Марширование: правое колено — левый локоть, и наоборот</li>
+      <li>Делайте медленно, преувеличенно — ребёнок копирует</li>
+      <li>Добавьте счёт или звук: «РАЗ» на каждый перекрёст</li>
+      <li>Вариант лёжа: правая нога — левая рука тянутся друг к другу</li>
+      <li>2–3 минуты в день — перед занятиями как «разогрев»</li>
+    </ul>
+    <div style="font-size:12px;color:#999;margin-top:8px">🧠 Перекрёстные движения — самый мощный способ синхронизировать полушария</div>
+    <button class="do-btn" onclick="markDone(this)">✓ Сделали сегодня!</button>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">🛑</div><div><div class="ex-title">Игра «Стоп»</div><span class="ex-tag tag-c">Внимание</span></div></div>
+    <ul class="ex-steps">
+      <li>Играйте в любую активную игру: хлопки, топот, прыжки</li>
+      <li>Неожиданно скажите «СТОП!» — все замирают</li>
+      <li>Пауза 3 секунды, потом «Поехали!» — продолжаем</li>
+      <li>Постепенно ребёнок начнёт сам говорить «Стоп!» — это победа!</li>
+      <li>Вариант: замирать на «тихо» и двигаться на «громко»</li>
+    </ul>
+    <div style="font-size:12px;color:#999;margin-top:8px">🧠 Тренирует произвольный контроль — без него речь по требованию невозможна</div>
+    <button class="do-btn" onclick="markDone(this)">✓ Сделали сегодня!</button>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">🌬️</div><div><div class="ex-title">Дыхание + движение</div><span class="ex-tag tag-s">Речевое дыхание</span></div></div>
+    <ul class="ex-steps">
+      <li>Вдох — медленно поднимаем руки вверх (4 счёта)</li>
+      <li>Выдох со звуком «Ш-ш-ш» — опускаем руки (6 счётов)</li>
+      <li>Вдох — надуваем живот «шарик», выдох — сдуваем «с-с-с»</li>
+      <li>Вдох носом — выдох ртом с «ХА!» (резко, весело)</li>
+      <li>5–6 повторений, не торопясь. Головокружение — сделайте паузу</li>
+    </ul>
+    <div style="font-size:12px;color:#999;margin-top:8px">🧠 Речевое дыхание — фундамент артикуляции. Без длинного выдоха нет фразы</div>
+    <button class="do-btn" onclick="markDone(this)">✓ Сделали сегодня!</button>
+  </div>
+  </div><!-- /ex-neuro -->
+
+</div>
+
+<!-- РЕЖИМ ДНЯ -->
+<div id="tab-schedule" class="section">
+  <div class="section-title">Речевой режим дня 📅</div>
+  <div class="section-desc">Встройте речевые упражнения в обычный день. Не нужно выделять специальное время — говорите везде и всегда!</div>
+
+  <div class="ex-card">
+    <div id="sched-list"></div>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-head"><div class="ex-ico">💡</div><div><div class="ex-title">Главное правило</div></div></div>
+    <div style="font-size:13px;line-height:1.8;color:#555">
+      <b>Комментируйте ВСЁ.</b> Вы — «говорящая книга» для ребёнка. Пока одеваете: «Надеваем носочки! Вот носок! Раз-два!». Пока едите: «Каша горячая! Дуем — фу-у-у! Вкусно? Ам!». Пока гуляете: «Вот птичка! Летит! Чирик-чирик!»<br><br>
+      <b>Говорите медленно, чётко, с паузами.</b> Не сюсюкайте, но и не говорите как взрослому. Короткие фразы из 2–3 слов.<br><br>
+      <b>Телевизор/мультики — не более 20 минут в день</b> и только вместе с вами, с комментариями.
+    </div>
+  </div>
+</div>
+
+<!-- СОВЕТЫ -->
+<div id="tab-tips" class="section">
+  <div class="section-title">Всё что нужно знать 📋</div>
+
+  <div class="warn">
+    ⚠️ <strong>Важно прямо сейчас:</strong> Отсутствие указательного жеста и речи в 2 года — повод к специалистам. <b>Первый шаг — проверить слух (аудиолог/сурдолог)!</b> Ребёнок может молчать просто потому что плохо слышит.
+  </div>
+
+  <div class="tip-card">
+    <div class="tip-title">🏥 К кому идти и в каком порядке</div>
+    <div class="tip-body">
+      <b>1. Аудиолог (сурдолог)</b> — ПЕРВЫМ. Проверьте слух методом AABR или игровой аудиометрии. Это бесплатно в поликлинике.<br><br>
+      <b>2. Детский невролог</b> — МРТ не нужно сразу. Осмотр, ЭЭГ если нужно. Исключит органические причины.<br><br>
+      <b>3. Дефектолог / логопед-дефектолог</b> — составит программу, будет работать 2–3 раза в неделю.<br><br>
+      <b>4. Детский психолог</b> — если есть тревожность, нет глазного контакта, странные интересы.<br><br>
+      <b>5. Педиатр</b> — направит и скоординирует всех специалистов.
+    </div>
+  </div>
+
+  <div class="tip-card green">
+    <div class="tip-title">✅ 10 правил дома для запуска речи</div>
+    <div class="tip-body">
+      <b>1. Говорите медленно</b> — 2–3 слова в фразе, чётко<br>
+      <b>2. Паузы</b> — после вопроса ждите 10–15 секунд<br>
+      <b>3. Не угадывайте сразу</b> — пусть попросит хоть жестом<br>
+      <b>4. Хвалите ВСЁ</b> — звук, жест, взгляд в сторону предмета<br>
+      <b>5. Не исправляйте</b> — сказал «ма» вместо «мама» — радуйтесь!<br>
+      <b>6. Комментируйте каждое действие</b> — весь день<br>
+      <b>7. Читайте вслух</b> — каждый день минимум 15 минут<br>
+      <b>8. Пойте</b> — речь и пение — соседние зоны мозга<br>
+      <b>9. Минимум гаджетов</b> — живое общение незаменимо<br>
+      <b>10. Не давите</b> — стресс блокирует речь
+    </div>
+  </div>
+
+  <div class="tip-card purple">
+    <div class="tip-title">👆 Почему важен указательный жест</div>
+    <div class="tip-body">
+      Указательный жест — это <b>совместное внимание</b>: «Смотри, вот это!» Это доказывает что ребёнок понимает: другой человек может смотреть туда же куда я. Это база для речи, общения, теории сознания.<br><br>
+      Если жеста нет в 18–24 месяца — это важнейший маркер для специалиста. <b>Тренируйте:</b> указывайте сами на всё вокруг с восторгом, берите ручку и указывайте вместе.
+    </div>
+  </div>
+
+  <div class="tip-card yellow">
+    <div class="tip-title">📊 Нормы речи</div>
+    <div class="tip-body">
+      <b>12 мес:</b> 1–3 слова, понимает «дай», «нет»<br>
+      <b>15 мес:</b> 5–10 слов, указательный жест<br>
+      <b>18 мес:</b> 10–20 слов, выполняет 2-ступенчатые просьбы<br>
+      <b>21 мес:</b> 50 слов, начало фраз «мама дай»<br>
+      <b>24 мес:</b> 50–200 слов, фразы из 2 слов<br>
+      <b>30 мес:</b> 200–400 слов, фразы из 3 слов<br>
+      <b>36 мес:</b> 500–1000 слов, предложения из 4+ слов<br><br>
+      Отставание на 6+ месяцев = консультация обязательна.
+    </div>
+  </div>
+
+  <div class="tip-card blue">
+    <div class="tip-title">🔴 Красные флаги — срочно к врачу</div>
+    <div class="tip-body">
+      ⛔ Не реагирует на своё имя<br>
+      ⛔ Нет совместного внимания (не смотрит куда вы указываете)<br>
+      ⛔ Нет указательного жеста после 14 месяцев<br>
+      ⛔ Нет глазного контакта при общении<br>
+      ⛔ Потерял навыки которые были<br>
+      ⛔ Не имитирует жесты и действия<br>
+      ⛔ Нет слов в 16 месяцев<br>
+      ⛔ Нет фраз из 2 слов в 24 месяца<br>
+      ⛔ Очень специфические интересы / ритуалы<br><br>
+      <b>Любой из этих признаков = не ждите, идите к специалисту.</b>
+    </div>
+  </div>
+
+  <div class="tip-card">
+    <div class="tip-title">🎵 Песни которые помогают</div>
+    <div class="tip-body">
+      Пение активирует речевые зоны иначе, чем обычная речь. Дети которые не говорят — часто <b>поют</b>!<br><br>
+      Пойте каждый день: «Ладушки», «Колыбельная», «В лесу родилась ёлочка», «Два весёлых гуся», «Мишка косолапый», «Если весело живётся».<br><br>
+      Делайте паузы в знакомой песне — пусть ребёнок «вставит» слово или звук.
+    </div>
+  </div>
+</div>
+
+<!-- ИИ ПОМОЩНИК -->
+<div id="tab-ai" class="section">
+  <div class="section-title">ИИ-помощник 🤖</div>
+  <div class="section-desc">Задайте любой вопрос о развитии речи, задержке, упражнениях. ИИ отвечает как дефектолог-консультант.</div>
+
+  <div class="ai-chat" id="ai-key-block">
+    <div style="font-size:13px;line-height:1.7;color:#555;margin-bottom:10px">
+      🔑 <b>Нужен API-ключ Anthropic.</b> Получите бесплатно на <b>console.anthropic.com</b>. Ключ сохраняется только в вашем браузере.
+    </div>
+    <div class="ai-input-row">
+      <input class="ai-input" id="api-key-input" type="password" placeholder="sk-ant-...">
+      <button class="ai-send" onclick="saveApiKey()">💾</button>
+    </div>
+  </div>
+
+  <div class="ai-chat" id="ai-chat-block" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:11px;color:#aaa">🔑 API-ключ сохранён</div>
+      <button onclick="clearApiKey()" style="font-size:11px;color:#FF6B6B;background:none;border:none;cursor:pointer;font-family:'Nunito',system-ui,sans-serif;font-weight:700">Сменить ключ</button>
+    </div>
+    <div class="ai-messages" id="ai-msgs">
+      <div class="msg bot">Привет! Я ваш помощник по развитию речи. Задайте любой вопрос о занятиях, задержке речи, упражнениях или симптомах. Я отвечу как дефектолог-консультант 👋</div>
+    </div>
+    <div class="quick-btns">
+      <button class="qbtn" onclick="askAI('Что делать если ребёнок совсем не говорит в 2 года?')">Не говорит совсем</button>
+      <button class="qbtn" onclick="askAI('Как научить ребёнка показывать пальцем?')">Нет жеста</button>
+      <button class="qbtn" onclick="askAI('Какие упражнения делать каждый день для запуска речи?')">С чего начать?</button>
+      <button class="qbtn" onclick="askAI('Это аутизм или задержка речи? Как отличить?')">Аутизм или ЗРР?</button>
+      <button class="qbtn" onclick="askAI('Сколько занятий в день нужно делать?')">Сколько занятий?</button>
+      <button class="qbtn" onclick="askAI('Помогают ли мультики развитию речи?')">Мультики и речь</button>
+    </div>
+    <div class="ai-input-row">
+      <input class="ai-input" id="ai-input" placeholder="Ваш вопрос..." onkeydown="if(event.key==='Enter')sendAI()">
+      <button class="ai-send" onclick="sendAI()">→</button>
+    </div>
+  </div>
+</div>
+
+<!-- ДНЕВНИК -->
+<div id="tab-tracker" class="section">
+  <div class="section-title">Дневник занятий ✅</div>
+  <div class="section-desc">Отмечайте дни когда занимались. Регулярность — ключ к результату!</div>
+
+  <div class="streak">
+    <div class="num" id="streak-num">0</div>
+    <div class="lbl">дней подряд 🔥</div>
+  </div>
+
+  <div id="tracker-month-label" style="font-size:12px;font-weight:700;color:#999;margin-bottom:7px"></div>
+  <div class="tracker-grid" id="tracker-grid"></div>
+
+  <div class="ex-card">
+    <div class="ex-title" style="margin-bottom:10px">📝 Заметки дня</div>
+    <textarea id="notes-area" placeholder="Что получилось? Новые звуки, реакции, успехи..."
+      style="width:100%;border:none;background:var(--soft);border-radius:12px;padding:11px;font-family:'Nunito',system-ui,sans-serif;font-size:13px;line-height:1.5;resize:none;height:90px;outline:none;color:var(--text);"
+      onchange="saveNotes()"></textarea>
+    <button class="do-btn" onclick="markToday()" style="margin-top:10px">✓ Занимались сегодня!</button>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-title" style="margin-bottom:10px">🎯 Достижения</div>
+    <div id="milestones"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="card-modal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    <div class="modal-em" id="m-em">🐱</div>
+    <div class="modal-word" id="m-word">КОТ</div>
+    <div class="modal-sound" id="m-sound">МЯУ</div>
+    <div class="modal-tip" id="m-tip">Скажите медленно и чётко. Потом ждите — вдруг малыш повторит!</div>
+    <div class="modal-nav">
+      <button class="modal-prev" onclick="modalNav(-1)">← Назад</button>
+      <button class="modal-next" onclick="modalNav(1)">Вперёд →</button>
+    </div>
+  </div>
+</div>
+
+<div class="floating-tip" id="floating-tip"></div>
+
+<script>
+// ===== DATA =====
+const cats = {
+  animals:[
+    {e:'🐱',w:'КОТ',s:'МЯУ'},{e:'🐶',w:'СОБАКА',s:'ГАВ'},{e:'🐄',w:'КОРОВА',s:'МУ-У'},
+    {e:'🐸',w:'ЛЯГУШКА',s:'КВА-КВА'},{e:'🐔',w:'КУРИЦА',s:'КО-КО'},{e:'🐷',w:'СВИНЬЯ',s:'ХРЮ'},
+    {e:'🐑',w:'ОВЕЧКА',s:'БЕ-Е'},{e:'🦆',w:'УТКА',s:'КРЯ'},{e:'🐴',w:'ЛОШАДЬ',s:'ИГО-ГО'},
+    {e:'🦁',w:'ЛЕВ',s:'Р-Р-Р'},{e:'🐻',w:'МЕДВЕДЬ',s:'У-У-У'},{e:'🐭',w:'МЫШКА',s:'ПИ-ПИ'}
+  ],
+  food:[
+    {e:'🍎',w:'ЯБЛОКО',s:'АМ-АМ'},{e:'🍌',w:'БАНАН',s:'НЯМ'},{e:'🥛',w:'МОЛОКО',s:'ПИТЬ'},
+    {e:'🍞',w:'ХЛЕБ',s:'КУШАТЬ'},{e:'🍰',w:'ТОРТ',s:'ВКУСНО'},{e:'🥚',w:'ЯЙЦО',s:'АМ'},
+    {e:'🍊',w:'АПЕЛЬСИН',s:'КИСЛО'},{e:'🍇',w:'ВИНОГРАД',s:'ЕМ'},{e:'🥣',w:'КАША',s:'НЯМ-НЯМ'},
+    {e:'🍪',w:'ПЕЧЕНЬЕ',s:'ХРУМ'},{e:'🫐',w:'ЯГОДЫ',s:'ЕМ'},{e:'🥕',w:'МОРКОВКА',s:'ХРУМ-ХРУМ'}
+  ],
+  body:[
+    {e:'👁️',w:'ГЛАЗА',s:'ВОТ'},{e:'👃',w:'НОС',s:'АПЧ-ХИ'},{e:'👂',w:'УШИ',s:'АЙ'},
+    {e:'👄',w:'РОТ',s:'А-А-А'},{e:'🖐️',w:'РУЧКИ',s:'ДАЙ'},{e:'🦶',w:'НОЖКИ',s:'ТОП-ТОП'},
+    {e:'👆',w:'ПАЛЬЧИК',s:'ВОТ'},{e:'💇',w:'ГОЛОВА',s:'ТУТ'},{e:'🦷',w:'ЗУБКИ',s:'ЧИС-ТИМ'},
+    {e:'💪',w:'РУКА',s:'СИЛ-НА'},{e:'🫀',w:'ЖИВОТИК',s:'БУЛ-ТЫХ'},{e:'🦴',w:'СПИНКА',s:'ТАМ'}
+  ],
+  actions:[
+    {e:'😴',w:'СПАТЬ',s:'БАЙ-БАЙ'},{e:'🏃',w:'БЕЖАТЬ',s:'ТОП-ТОП'},{e:'👏',w:'ХЛОПАТЬ',s:'ХЛОП'},
+    {e:'🤗',w:'ОБНЯТЬ',s:'АА-А'},{e:'🍽️',w:'КУШАТЬ',s:'АМ-АМ'},{e:'🛁',w:'КУПАТЬ',s:'БУЛ-ТЫХ'},
+    {e:'📚',w:'ЧИТАТЬ',s:'ВОТ'},{e:'🎉',w:'УРА',s:'УРА!'},{e:'😭',w:'ПЛАКАТЬ',s:'УА-УА'},
+    {e:'😂',w:'СМЕЯТЬСЯ',s:'ХА-ХА'},{e:'🙅',w:'НЕТ',s:'НЕТ!'},{e:'🙆',w:'ДА',s:'ДА!'}
+  ],
+  transport:[
+    {e:'🚗',w:'МАШИНА',s:'БИ-БИ'},{e:'🚂',w:'ПОЕЗД',s:'ТУ-ТУ'},{e:'✈️',w:'САМОЛЁТ',s:'У-У-У'},
+    {e:'🚌',w:'АВТОБУС',s:'БИ-БИ'},{e:'🚲',w:'ВЕЛОСИПЕД',s:'ЕЕЕДУ'},{e:'🚁',w:'ВЕРТОЛЁТ',s:'ТР-ТР'},
+    {e:'⛵',w:'ЛОДКА',s:'БУЛЬ'},{e:'🛵',w:'МОТОЦИКЛ',s:'ВР-ВР'}
+  ],
+  home:[
+    {e:'🪑',w:'СТУЛ',s:'СЯ-ДЬ'},{e:'🛏️',w:'КРОВАТЬ',s:'БАЙ-БАЙ'},{e:'🚿',w:'ДУШ',s:'ЛЬЕ-ТСЯ'},
+    {e:'🪥',w:'ЗУБНАЯ ЩЁТКА',s:'ЧИСТ-ИМ'},{e:'🧸',w:'МИШКА',s:'МЯ-ГКИ-Й'},{e:'⚽',w:'МЯЧ',s:'БАМ!'},
+    {e:'📺',w:'ТЕЛЕВИЗОР',s:'БУМ-БУМ'},{e:'🪟',w:'ОКНО',s:'ВОТ УЛИЦА'}
+  ],
+  nature:[
+    {e:'☀️',w:'СОЛНЫШКО',s:'ТЁПЛОЕ'},{e:'🌧️',w:'ДОЖДИК',s:'КАП-КАП'},{e:'❄️',w:'СНЕГ',s:'БЕ-ЛЫЙ'},
+    {e:'🌸',w:'ЦВЕТОК',s:'КРА-СИ-ВЫЙ'},{e:'🌳',w:'ДЕРЕВО',s:'ВОТ'},{e:'🌊',w:'ВОДА',s:'БУЛ-ТЫХ'},
+    {e:'⚡',w:'ГРОЗА',s:'БУМ!'},{e:'🌈',w:'РАДУГА',s:'КРА-СИ-ВА'}
+  ],
+  feelings:[
+    {e:'😊',w:'РАДОСТЬ',s:'УРА!'},{e:'😢',w:'ГРУСТЬ',s:'УА-УА'},{e:'😠',w:'ЗЛОСТЬ',s:'НЕТ!'},
+    {e:'😱',w:'ИСПУГ',s:'АЙ!'},{e:'🥰',w:'ЛЮБОВЬ',s:'МА-МА'},{e:'😴',w:'УСТАЛ',s:'БАЙ'},
+    {e:'🤒',w:'БОЛИТ',s:'АЙ-АЙ'},{e:'🤩',w:'ВОСТОРГ',s:'ВАУ!'}
+  ]
+};
+
+const snds=[
+  {e:'🐄',t:'МУ-У-У',h:'Тяните долго, кивайте как корова'},
+  {e:'🐱',t:'МЯ-У',h:'Нежно, как просящий котёнок'},
+  {e:'🐸',t:'КВА-КВА',h:'Весело и громко, прыгайте как лягушата!'},
+  {e:'🚂',t:'ТУ-ТУ',h:'Поезд! Вытяните губы трубочкой'},
+  {e:'🚗',t:'БИ-БИ',h:'Машина гудит — губы вместе, потом открыть'},
+  {e:'🐝',t:'Ж-Ж-Ж',h:'Пчёлка — тяните звук Ж долго'},
+  {e:'🐍',t:'Ш-Ш-Ш',h:'Змейка — язычок за зубки, дуем'},
+  {e:'🔔',t:'ДИН-ДОН',h:'Колокол — чётко Д, потом Н'},
+  {e:'💨',t:'ФУ-У-У',h:'Дуем на горячее — длинный выдох'},
+  {e:'🥁',t:'БАМ-БАМ',h:'Барабан! Губы сжать, открыть с выдохом'},
+  {e:'🦆',t:'КРЯ-КРЯ',h:'Уточка! Вытяните губы вперёд'},
+  {e:'🐧',t:'БЕ-Е-Е',h:'Овечка — звук «Б» потом тянем «Е»'},
+  {e:'🐴',t:'ИГО-ГО',h:'Лошадка! Порычите на «Г»'},
+  {e:'🦁',t:'Р-Р-Р',h:'Лев рычит! Вибрируем язычком'},
+  {e:'🌧️',t:'КАП-КАП',h:'Дождик! Постучите пальцами по столу'},
+  {e:'⚡',t:'БУМ!',h:'Гром! Резко, громко, с хлопком в ладоши'},
+];
+
+const pecsItems=[
+  {e:'🍎',w:'яблоко'},{e:'🍌',w:'банан'},{e:'🥛',w:'молоко'},{e:'🍪',w:'печенье'},
+  {e:'🧃',w:'сок'},{e:'🍫',w:'шоколад'},{e:'🧸',w:'мишку'},{e:'⚽',w:'мячик'},
+  {e:'📱',w:'телефон'},{e:'🚗',w:'машинку'},{e:'📚',w:'книжку'},{e:'🎵',w:'музыку'},
+  {e:'🚶',w:'гулять'},{e:'🛁',w:'купаться'},{e:'😴',w:'спать'},{e:'🤗',w:'обнять'},
+  {e:'🎠',w:'качели'},{e:'🫧',w:'пузыри'},{e:'✏️',w:'рисовать'},{e:'🧩',w:'пазл'},
+];
+
+const milestonesList=[
+  '👁 Смотрит в глаза при общении',
+  '👆 Указывает пальцем на предметы',
+  '😊 Реагирует на своё имя',
+  '🙌 Выполняет просьбы (дай, принеси)',
+  '👋 Машет рукой «пока»',
+  '🔊 Повторяет слоги (ма, па, да)',
+  '🐱 Повторяет звуки животных',
+  '💬 Сказал первое слово',
+  '📣 Использует 5+ слов',
+  '🗣 Говорит «мама», «папа»',
+  '🔗 Фраза из 2 слов',
+  '🌟 Использует 20+ слов',
+];
+
+const schedule=[
+  {time:'Утро',icon:'☀️',title:'Приветствие',desc:'Скажите «Доброе утро!» и ждите. Назовите что одеваете: «Носочки! Штанишки! Рубашка!»'},
+  {time:'Завтрак',icon:'🍳',title:'Комментируем еду',desc:'«Каша горячая! Дуем — фу-у! Ложка! Ам-ам! Вкусно?» Пауза — ждём реакцию'},
+  {time:'9:00',icon:'💆',title:'Массаж лица',desc:'2–3 минуты. Щёки, губы, пальчики. Перед занятием!'},
+  {time:'9:10',icon:'💨',title:'Артикуляция',desc:'«Заборчик», «Хоботок», «Лопатка» перед зеркалом. 3–5 минут'},
+  {time:'9:20',icon:'🖐️',title:'Пальчиковая игра',desc:'Выберите одну игру из раздела «Пальчики». Повторите 3–4 раза с удовольствием'},
+  {time:'10:00',icon:'🎯',title:'Провокация речи',desc:'Выберите одну провокацию. Мыльные пузыри + пауза, или прозрачный контейнер'},
+  {time:'10:30',icon:'🚶',title:'Прогулка',desc:'На улице называйте ВСЁ: «Птичка! Машина! Собака! Дерево! Ветер! Лужа!»'},
+  {time:'Обед',icon:'🍽️',title:'Называем еду',desc:'«Суп! Горячий! Хлеб! Дай ложку! Ещё? Всё!» — ждём любого сигнала'},
+  {time:'14:00',icon:'📖',title:'Книжка',desc:'10–15 минут. Указываем, называем, задаём вопрос — ждём 10 секунд'},
+  {time:'15:00',icon:'🃏',title:'Карточки',desc:'5–7 карточек одной темы. Показываем, называем, просим показать пальчиком'},
+  {time:'16:00',icon:'🎭',title:'Сюжетная игра',desc:'«Кормим куклу»: АМ-АМ! «Машинка едет»: БИ-БИ! Озвучиваем всё'},
+  {time:'Ужин',icon:'🌙',title:'День в словах',desc:'«Мы сегодня гуляли! Видели птичку! Ели кашу!» — пересказ с картинками'},
+  {time:'Перед сном',icon:'🎵',title:'Колыбельная',desc:'Пойте одну и ту же песню каждый вечер. Делайте паузу на последнем слове строчки'},
+];
+
+// ===== MODAL =====
+let modalItems = [];
+let modalIdx = 0;
+
+function openModal(items, idx) {
+  modalItems = items;
+  modalIdx = idx;
+  renderModal();
+  document.getElementById('card-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function renderModal() {
+  const item = modalItems[modalIdx];
+  document.getElementById('m-em').textContent = item.e;
+  document.getElementById('m-word').textContent = item.w;
+  document.getElementById('m-sound').textContent = item.s;
+  // Подсказка как произносить
+  const tips = {
+    'МЯУ':'Нежно, немного в нос: «Мяяяу...»',
+    'ГАВ':'Коротко и звонко! «Гав!» — и улыбнитесь',
+    'МУ-У':'Тяните звук долго: «Муу-у-у-у...»',
+    'КВА-КВА':'Весело, прыгайте! «КВА! КВА!»',
+    'КО-КО':'Смешно кивайте головой: «Ко-ко-ко!»',
+    'ХРЮ':'Наморщите нос: «Хрю-хрю!»',
+    'БЕ-Е':'Тянуть: «Бее-е-е...»',
+    'КРЯ':'Губы трубочкой: «Кря-кря!»',
+    'ИГО-ГО':'Громко и гордо: «Иго-го!»',
+    'Р-Р-Р':'Грозно, низко: «Р-р-р...»',
+    'У-У-У':'Тихо и протяжно: «У-у-у...»',
+    'ПИ-ПИ':'Тонко и быстро: «Пи-пи-пи!»',
+    'БИ-БИ':'Губы вместе потом открыть: «Би-би!»',
+    'ТУ-ТУ':'Губы трубочкой: «Ту-у-ту-у!»',
+    'АМ-АМ':'Широко открыть рот: «Ам-ам!»',
+    'НЯМ':'Причмокните: «Ням-ням!»',
+    'НЯМ-НЯМ':'Причмокните и потрите животик: «Ням-ням!»',
+    'БАЙ-БАЙ':'Тихо, нежно, качая: «Бай-бай...»',
+    'ТОП-ТОП':'Топните ногой в такт: «Топ-топ!»',
+    'УРА!':'Громко и радостно, руки вверх: «Ура-а!»',
+    'ПИТЬ':'Поднесите ладошку ко рту как стакан: «Пи-и-ить!»',
+    'КУШАТЬ':'Имитируйте ложку: «Ку-у-шать!»',
+    'ВКУСНО':'Причмокните и улыбнитесь: «Вку-у-сно!»',
+    'АМ':'Широко откройте рот: «А-а-ам!»',
+    'КИСЛО':'Наморщитесь смешно: «Ки-и-сло!»',
+    'ЕМ':'Имитируйте жевание: «Е-е-ем!»',
+    'ХРУМ':'Имитируйте укус: «Хру-ум!»',
+    'ХРУМ-ХРУМ':'Хрустите как морковка: «Хрум-хрум!»',
+    'ВОТ':'Укажите пальчиком: «Во-от!»',
+    'АПЧ-ХИ':'Смешно чихните: «Апчхи!» — и засмейтесь',
+    'АЙ':'Удивлённо: «А-а-ай!»',
+    'А-А-А':'Широко откройте рот: «А-а-а!»',
+    'ДАЙ':'Протяните руку: «Да-а-й!»',
+    'ТУТ':'Покажите на себя: «Ту-ут!»',
+    'ЧИС-ТИМ':'Имитируйте чистку зубов: «Чис-тим!»',
+    'СИЛ-НА':'Согните руку как силач: «Сил-на-а!»',
+    'БУЛ-ТЫХ':'Плюхните руку: «Бул-тых!»',
+    'ТАМ':'Укажите пальцем вдаль: «Та-ам!»',
+    'УА-УА':'Потрите глазки: «Уа-уа!»',
+    'ХА-ХА':'Засмейтесь заразительно: «Ха-ха-ха!»',
+    'НЕТ!':'Покачайте головой: «Не-ет!»',
+    'ДА!':'Кивните: «Да-а!»',
+    'ЕЕЕДУ':'Крутите воображаемый руль: «Е-е-еду!»',
+    'ТР-ТР':'Вибрируйте губами: «Тр-тр-тр!»',
+    'БУЛЬ':'Имитируйте пузыри: «Бу-уль!»',
+    'ВР-ВР':'Резко и громко: «Вр-вр!»',
+    'СЯ-ДЬ':'Присядьте вместе: «Ся-а-дь!»',
+    'ЛЬЕ-ТСЯ':'Лейте воображаемую воду: «Льё-тся!»',
+    'ЧИСТ-ИМ':'Имитируйте чистку зубов: «Чис-тим!»',
+    'МЯ-ГКИ-Й':'Погладьте что-то мягкое: «Мя-гкий!»',
+    'БАМ!':'Ударьте ладонью по столу: «Ба-ам!»',
+    'БУМ-БУМ':'Постучите кулачком: «Бум-бум!»',
+    'ВОТ УЛИЦА':'Укажите в окно: «Вот у-улица!»',
+    'ТЁПЛОЕ':'Потрите ладони: «Тё-о-плое!»',
+    'КАП-КАП':'Постучите пальцами по столу: «Кап-кап!»',
+    'БЕ-ЛЫЙ':'Покажите на что-то белое: «Бе-е-лый!»',
+    'КРА-СИ-ВЫЙ':'Поцелуйте пальцы: «Кра-си-вый!»',
+    'КРА-СИ-ВА':'Поцелуйте пальцы: «Кра-си-ва-а!»',
+    'БУМ!':'Громко хлопните в ладоши: «Бу-ум!»',
+    'УРА':'Поднимите руки вверх: «У-ра-а!»',
+    'АЙ!':'Схватитесь за щёку удивлённо: «А-а-й!»',
+    'МА-МА':'Нежно, тянуть первый слог: «Ма-а-ма!»',
+    'БАЙ':'Закройте глазки: «Ба-а-й...»',
+    'АЙ-АЙ':'Пожалейте: «Ай-ай-ай...»',
+    'ВАУ!':'Широко откройте глаза и рот: «Ва-ау!»',
+  };
+  const tip = tips[item.s] || `Скажите «${item.s}» медленно и чётко. Покажите пальчиком. Подождите — вдруг малыш повторит!`;
+  document.getElementById('m-tip').textContent = '👆 ' + tip;
+}
+
+function modalNav(dir) {
+  modalIdx = (modalIdx + dir + modalItems.length) % modalItems.length;
+  renderModal();
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('card-modal')) closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('card-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ===== CARDS =====
+function loadCat(cat, btn) {
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const grid=document.getElementById('cards-grid');
+  grid.innerHTML='';
+  const items = cats[cat];
+  items.forEach((item, idx) => {
+    const c=document.createElement('div');
+    c.className='card';
+    c.innerHTML=`<span class="em">${item.e}</span><div class="wd">${item.w}</div><div class="sd">${item.s}</div><span class="ph">👆</span>`;
+    c.onclick=() => openModal(items, idx);
+    grid.appendChild(c);
+  });
+}
+loadCat('animals');
+
+// ===== SOUNDS =====
+let si=0;
+function rSnd(autoPlay){
+  const s=snds[si];
+  document.getElementById('snd-em').textContent=s.e;
+  document.getElementById('snd-txt').textContent=s.t;
+  document.getElementById('snd-hlp').textContent=s.h;
+  document.getElementById('pdots').innerHTML=snds.map((_,i)=>`<div class="pdot ${i===si?'done':''}"></div>`).join('');
+}
+function nextSnd(){si=(si+1)%snds.length;rSnd();}
+function prevSnd(){si=(si-1+snds.length)%snds.length;rSnd();}
+rSnd();
+
+// ===== PECS =====
+let pecsSelected=[];
+function buildPecs(){
+  const g=document.getElementById('pecs-grid');
+  g.innerHTML=pecsItems.map((p,i)=>`
+    <div class="pecs-card ${pecsSelected.includes(i)?'selected':''}" onclick="togglePecs(${i})">
+      <span class="pecs-em">${p.e}</span>
+      <div class="pecs-word">${p.w}</div>
+    </div>`).join('');
+  const out=document.getElementById('pecs-out');
+  if(pecsSelected.length===0){out.innerHTML='<span style="color:#bbb;font-size:13px">Нажмите картинки выше...</span>';return;}
+  out.innerHTML='<div class="pecs-chip">Я хочу</div>'+pecsSelected.map(i=>`
+    <div class="pecs-chip">${pecsItems[i].e} ${pecsItems[i].w} <button onclick="removePecs(${i})">✕</button></div>`).join('');
+}
+function togglePecs(i){
+  const idx=pecsSelected.indexOf(i);
+  if(idx>-1)pecsSelected.splice(idx,1);else pecsSelected.push(i);
+  buildPecs();
+  if(pecsSelected.length>0){
+    const words=pecsSelected.map(j=>pecsItems[j].w).join(', ');
+    showTip(`📢 Скажите вслух: «Я хочу ${words}!» и дайте это ребёнку!`);
+  }
+}
+function removePecs(i){pecsSelected=pecsSelected.filter(x=>x!==i);buildPecs();}
+function clearPecs(){pecsSelected=[];buildPecs();}
+buildPecs();
+
+// ===== SCHEDULE =====
+function buildSchedule(){
+  const el=document.getElementById('sched-list');
+  const colors=['#FF6B6B','#4ECDC4','#A78BFA','#FB923C','#60A5FA','#6EE7B7'];
+  el.innerHTML=schedule.map((s,i)=>`
+    <div class="sched-item">
+      <div class="sched-dot" style="background:${colors[i%colors.length]}"></div>
+      <div class="sched-time">${s.time}</div>
+      <div class="sched-content">
+        <div class="sched-title">${s.icon} ${s.title}</div>
+        <div class="sched-desc">${s.desc}</div>
+      </div>
+    </div>`).join('');
+}
+buildSchedule();
+
+// ===== EXERCISES =====
+let doneTodayKey='doneBtns_'+dayKey(new Date());
+let doneBtns=JSON.parse(localStorage.getItem(doneTodayKey)||'[]');
+
+function markDone(btn){
+  const idx=Array.from(document.querySelectorAll('.do-btn')).indexOf(btn);
+  btn.classList.add('done');btn.textContent='🎉 Отлично! Сделано!';btn.disabled=true;
+  if(!doneBtns.includes(idx)){doneBtns.push(idx);localStorage.setItem(doneTodayKey,JSON.stringify(doneBtns));}
+  showTip('Молодцы! Регулярность даёт результат 💪');
+}
+
+function restoreDoneBtns(){
+  const btns=document.querySelectorAll('.do-btn');
+  doneBtns.forEach(idx=>{
+    if(btns[idx]){btns[idx].classList.add('done');btns[idx].textContent='🎉 Отлично! Сделано!';btns[idx].disabled=true;}
+  });
+}
+
+// ===== AI =====
+function saveApiKey(){
+  const key=document.getElementById('api-key-input').value.trim();
+  if(!key.startsWith('sk-')){showTip('⚠️ Ключ должен начинаться с sk-ant-...');return;}
+  localStorage.setItem('anthropicKey',key);
+  initAiUI();
+  showTip('✅ API-ключ сохранён!');
+}
+function clearApiKey(){
+  localStorage.removeItem('anthropicKey');
+  initAiUI();
+}
+function initAiUI(){
+  const key=localStorage.getItem('anthropicKey');
+  document.getElementById('ai-key-block').style.display=key?'none':'block';
+  document.getElementById('ai-chat-block').style.display=key?'block':'none';
+}
+initAiUI();
+
+async function sendAI(){
+  const key=localStorage.getItem('anthropicKey');
+  if(!key){showTip('⚠️ Сначала введите API-ключ');return;}
+  const input=document.getElementById('ai-input');
+  const q=input.value.trim();
+  if(!q)return;
+  input.value='';
+  addMsg(q,'user');
+  const loading=addMsg('✍️ Думаю...','bot loading');
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        system:`Ты опытный дефектолог и логопед, специализирующийся на задержке речевого развития у детей 1–4 лет.
+Отвечай на русском языке. Давай конкретные практические советы, упражнения, методики.
+Будь эмпатичным к родителям. Если вопрос требует — упомяни необходимость визита к специалисту.
+Пиши кратко, структурированно, без лишних вступлений. Используй эмодзи для удобства чтения.`,
+        messages:[{role:'user',content:q}]
+      })
+    });
+    const d=await res.json();
+    loading.remove();
+    if(d.error){
+      const msg=d.error.type==='authentication_error'?'❌ Неверный API-ключ. Проверьте и введите снова.':'❌ Ошибка: '+d.error.message;
+      addMsg(msg,'bot');return;
+    }
+    const text=d.content?.[0]?.text||'Не удалось получить ответ. Попробуйте ещё раз.';
+    addMsg(text,'bot');
+  }catch(e){
+    loading.remove();
+    addMsg('Ошибка соединения. Проверьте интернет и попробуйте снова.','bot');
+  }
+}
+
+function askAI(q){
+  if(!localStorage.getItem('anthropicKey')){
+    const aiBtn=document.querySelector('.tab[onclick*="\'ai\'"]');
+    showTab('ai',aiBtn);
+    showTip('⚠️ Сначала введите API-ключ');return;
+  }
+  document.getElementById('ai-input').value=q;
+  const aiBtn=document.querySelector('.tab[onclick*="\'ai\'"]');
+  showTab('ai',aiBtn);
+  sendAI();
+}
+
+function addMsg(text,cls){
+  const msgs=document.getElementById('ai-msgs');
+  const div=document.createElement('div');
+  div.className='msg '+cls;
+  div.style.whiteSpace='pre-wrap';
+  div.textContent=text;
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+  return div;
+}
+
+// ===== TRACKER =====
+let milestones=JSON.parse(localStorage.getItem('milestones')||'[]');
+
+// Храним дни как "YYYY-MM-DD" для корректного streak через месяцы
+function dayKey(date){
+  return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+}
+let markedDays=JSON.parse(localStorage.getItem('markedDaysV2')||'[]');
+
+function buildTracker(){
+  const grid=document.getElementById('tracker-grid');
+  grid.innerHTML='';
+  const today=new Date();
+  const daysInMonth=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
+  const todayDate=today.getDate();
+  const monthNames=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  document.getElementById('tracker-month-label').textContent=monthNames[today.getMonth()]+' '+today.getFullYear();
+  for(let d=1;d<=daysInMonth;d++){
+    const key=dayKey(new Date(today.getFullYear(),today.getMonth(),d));
+    const cell=document.createElement('div');
+    cell.className='day-cell'+(d===todayDate?' today':'')+(markedDays.includes(key)?' active':'');
+    cell.textContent=d;
+    cell.onclick=()=>{
+      const idx=markedDays.indexOf(key);
+      if(idx>-1)markedDays.splice(idx,1);else markedDays.push(key);
+      localStorage.setItem('markedDaysV2',JSON.stringify(markedDays));
+      cell.classList.toggle('active');
+      updateStreak();
+    };
+    grid.appendChild(cell);
+  }
+  updateStreak();
+}
+
+function markToday(){
+  const key=dayKey(new Date());
+  if(!markedDays.includes(key)){markedDays.push(key);localStorage.setItem('markedDaysV2',JSON.stringify(markedDays));buildTracker();}
+  showTip('✅ Сегодняшний день отмечен! Молодцы!');
+}
+
+function updateStreak(){
+  let s=0;
+  const d=new Date();
+  while(true){
+    if(markedDays.includes(dayKey(d)))s++;else break;
+    d.setDate(d.getDate()-1);
+  }
+  document.getElementById('streak-num').textContent=s;
+}
+
+function saveNotes(){localStorage.setItem('speechNotes',document.getElementById('notes-area').value);}
+
+function buildMilestones(){
+  document.getElementById('milestones').innerHTML=milestonesList.map((m,i)=>`
+    <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--soft);cursor:pointer" onclick="toggleM(${i})">
+      <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${milestones.includes(i)?'var(--secondary)':'#ddd'};background:${milestones.includes(i)?'var(--secondary)':'transparent'};flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px">${milestones.includes(i)?'✓':''}</div>
+      <div style="font-size:13px;${milestones.includes(i)?'text-decoration:line-through;color:#999':''}">${m}</div>
+    </div>`).join('');
+}
+
+function toggleM(i){
+  const idx=milestones.indexOf(i);
+  const isAdding=idx===-1;
+  if(idx>-1)milestones.splice(idx,1);else milestones.push(i);
+  localStorage.setItem('milestones',JSON.stringify(milestones));buildMilestones();
+  if(isAdding)showTip('🎉 Новое достижение! Записали! Так держать!');
+}
+
+buildTracker();buildMilestones();restoreDoneBtns();
+const savedNotes=localStorage.getItem('speechNotes')||'';
+document.getElementById('notes-area').value=savedNotes;
+
+// ===== SUB TABS =====
+function showSubTab(id,btn){
+  document.querySelectorAll('#tab-exercises .sub-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ex-classic').style.display=id==='ex-classic'?'block':'none';
+  document.getElementById('ex-neuro').style.display=id==='ex-neuro'?'block':'none';
+}
+
+// ===== TABS =====
+function showTab(name,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');
+}
+
+// ===== TIP =====
+let tipTO;
+function showTip(msg){
+  const t=document.getElementById('floating-tip');
+  t.textContent=msg;t.style.display='block';
+  clearTimeout(tipTO);tipTO=setTimeout(()=>{t.style.display='none'},3500);
+}
+// ===== PWA SERVICE WORKER =====
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>

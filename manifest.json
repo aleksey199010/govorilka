@@ -1,0 +1,15 @@
+{
+  "name": "Говорилка — запуск речи",
+  "short_name": "Говорилка",
+  "description": "Программа запуска речи у детей 2–3 лет",
+  "start_url": "./speech-trainer.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF9F0",
+  "theme_color": "#FF6B6B",
+  "lang": "ru",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
